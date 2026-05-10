@@ -1,32 +1,44 @@
 ---
 name: ama2-find-people
-description: Search for AMA2 users or agents by name. Use when the user wants to look someone up or find an agent that does X.
+description: Resolve a name or capability description into a concrete identifier — user_id for humans, actor_id for agents. Use as a prerequisite step before any thread creation, recall, or send flow.
 ---
 
 # Find people or agents on AMA2
 
-Use this skill to resolve a name or capability description into a concrete user or agent identity.
+This skill is almost always a **step** in another flow, not a final answer. The agent calls it, picks the right id, then proceeds.
 
 ## When to use
 
-- "Who is Alice on AMA2?"
-- "Find an agent that can summarize PDFs."
-- "Is there a coding-help agent?"
+- Need to DM someone but only have a name.
+- Looking for an agent by capability ("a summarizer", "a code reviewer").
+- Disambiguating a user-supplied reference before acting.
 
-This skill is usually a *step* in another flow (creating a thread, inviting an agent), not the final answer.
+## How to use
 
-## How to do it
+1. Decide the search type:
+   - Human → `ama_users_search` → result rows carry `user_id` only (no `actor_id`).
+   - Agent → `ama_agents_search` → result rows carry `actor_id` (the participant id used by `ama_thread_create`) plus the agent's owning `user_id`.
+   - Unsure → call **both in parallel**, merge results.
+2. Render candidates with: id (`user_id` or `actor_id`), `display_name`, `kind` (user|agent), short description (for agents).
+3. If multiple candidates → return the full list; do **not** auto-pick the top hit when downstream actions are irreversible (thread create, send).
+4. Hand the chosen id to the next caller, picking the right field per tool:
+   - `ama_thread_create` → `participant_actor_id`. Works directly for **agent** targets (use the row's `actor_id`). For **human** targets there is currently no public bridge from `user_id` to a human's `actor_id`; if the human is already a participant of a thread you share, pull their `sender_id` from `ama_thread_participants` and use that as the actor id, otherwise the DM cannot be created from search alone.
+   - `ama_friends_status` → `user_id` (human counterparts only — the tool rejects agent ids).
+   - `ama2-recall-person` → see that skill for which id to pass.
 
-1. Determine the search target type:
-   - Human user → `ama_users_search` (by display name or email).
-   - AI agent → `ama_agents_search` (by name or capability description).
-   - Unsure → run both in parallel and merge the results.
-2. Render results with: name, kind (user / agent), short description, ID.
-3. If the result count is high, ask the user to refine. If empty, say so and suggest broader terms.
-4. Pass the chosen ID to the next skill (`ama2-create-thread`, `ama2-send-message` if the user wants direct contact).
+## Output format
 
-## Things to watch
+```
+Search "alice":
+  • user  user_01H...  Alice Kim       (alice@example.com)
+  • user  user_01J...  Alice Park      (alice.park@…)
+  • agent actor_01K... "Code Reviewer"  owner=user_01M...
+Search returned 2 users, 1 agent. Disambiguate before creating a thread.
+```
 
-- Do not fabricate IDs. Always derive from a real search response.
-- Searches are case-insensitive but exact for short names; be willing to try a partial term ("ali" → Alice, Alistair).
-- For agents, the description field is what the user actually cares about — show it prominently.
+## Caveats
+
+- Never fabricate ids. Only values returned by the API are valid.
+- `user_id` and `actor_id` are **not interchangeable**. Friend tools want `user_id`; thread/participant tools want `actor_id`. Confusing them is the most common cause of "no relation" or schema errors.
+- Empty result → suggest broader terms; do not silently fail.
+- Search is case-insensitive but matches short names exactly. Try a partial term ("ali" → Alice, Alistair) on a miss.

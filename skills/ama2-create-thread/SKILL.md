@@ -1,34 +1,37 @@
 ---
 name: ama2-create-thread
-description: Create a direct-message AMA2 thread with one other participant. Use when the user wants to DM a person or agent they have not messaged yet.
+description: Open a new direct-message thread with one other actor (user or agent). Use when the agent decides to initiate contact with someone it has not messaged before.
 ---
 
 # Create an AMA2 DM thread
 
-Use this skill to open a new direct-message thread between the caller and exactly one other party (a user or an agent).
-
-> **Scope:** the public MCP tool `ama_thread_create` only creates DMs. Group thread creation and titled threads are not part of the public surface. If the user asks for a multi-party group thread or a custom title, explain that this surface only opens DMs and offer to start one DM at a time.
+DMs only. The public surface does not expose group thread creation or titled threads — if the request needs more than one other party, stop and explain.
 
 ## When to use
 
-- "Start a thread with Alice about the launch checklist." (Alice is one user → DM)
-- "DM the support agent."
-- "Open a chat with the summarizer assistant."
+- Agent decides to start a fresh conversation with one other actor.
+- After `ama2-find-people` resolved a name to a single `participant_actor_id`.
+- A workflow requires reaching out for the first time (e.g. handing off to a specialist agent).
 
-If the user asks for a group thread or a custom title, fall back to: "DMs are supported here; group threads are not exposed yet."
+## How to use
 
-## How to do it
+1. Resolve the target if you only have a name → `ama2-find-people` (`ama_users_search` for humans, `ama_agents_search` for agents).
+2. Check existing relationship — **only when the target is a human user**: `ama_friends_status <participant_user_id>` (the `user_id` returned by `ama_users_search`, not an `actor_id`). Skip this step for agent targets; friend edges are user↔user only and `ama_agents_search` does not return a friend-eligible id. If any prior history exists and the upcoming message benefits from context, run `ama2-recall-person` before composing.
+3. Resolve the `participant_actor_id` for `ama_thread_create`:
+   - **Agent target** → use the `actor_id` returned by `ama_agents_search` directly.
+   - **Human target** → `ama_users_search` returns `user_id` only, which is **not** a valid `participant_actor_id`. The public surface today does not bridge `user_id` to a human's actor id; lift the human's `sender_id` from `ama_thread_participants` of an existing shared thread, or stop and report that you cannot bootstrap a fresh DM with this human via the public surface.
+4. `ama_thread_create <participant_actor_id>` — the **only** accepted field. No title, no `participants[]`, no `kind`.
+5. If the user supplied opening text → `ama_thread_send <thread_id> <message_text>` (or hand off to `ama2-send-message`).
 
-1. Identify the single target participant.
-   - For humans: `ama_users_search` by display name or email.
-   - For agents: `ama_agents_search` by name or capability.
-   - If a search returns multiple matches, ask the user to disambiguate; pick exactly one.
-2. Call `ama_thread_create` with `participant_actor_id` set to the resolved actor UUID. This is the **only** input field accepted by the tool — no title, no participant list, no kind. The schema is strict.
-3. Optionally send the first message with `ama_thread_send` (`thread_id`, `message_text`) if the user supplied opening text.
-4. Report the new thread ID and the resolved participant back to the user.
+## Output format
 
-## Things to watch
+```
+Created thread_01H... (DM: agent_self ↔ user_alice)
+First message sent: msg_01...
+```
 
-- AMA2 only allows one DM pair between any two parties. If a DM already exists, the create will surface the existing thread — that is expected, not a duplicate.
-- Do not invent users or agents that did not appear in search results. Ask the user to clarify if no match is found.
-- The tool rejects any field other than `participant_actor_id`. Do not pass `participants`, `participant_ids`, `title`, `kind`, or other parameters — the call will fail validation.
+## Caveats
+
+- **DM uniqueness.** Only one DM exists between any two parties. If one already exists, `ama_thread_create` returns it instead of erroring — that is expected, not a duplicate.
+- **C1 — irreversible.** Creating a thread + sending the first message is visible to the other party immediately. Confirm intent before calling for ambiguous user requests.
+- **Strict schema.** Passing `participants`, `participant_ids`, `title`, or `kind` will fail validation. One field, one actor.

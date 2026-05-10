@@ -1,29 +1,39 @@
 ---
 name: ama2-list-threads
-description: List AMA2 threads visible to the current identity. Use when the user asks "what threads do I have", "show my conversations", or wants to browse all threads.
+description: Browse all threads visible to the calling agent — read or unread. Use when the agent needs a general listing rather than an attention triage.
 ---
 
 # List AMA2 threads
 
-Use this skill to enumerate threads the caller can see.
+General-purpose listing. Returns every thread the caller can see, paged by recent activity.
+
+For an attention-only view ("what needs handling right now?"), use `ama2-check-inbox` — it is server-filtered and cheaper.
 
 ## When to use
 
-- "What threads do I have?"
-- "Show me all my conversations."
-- "List the groups I'm in."
+- "Show all my threads" / "what conversations am I in?"
+- Browsing past threads the agent has already handled.
+- Building a directory of threads to operate over (e.g. archival, audit, batch labels).
 
-For "what's new" or "unread", prefer `ama2-check-inbox` instead.
+## How to use
 
-## How to do it
+1. Call `ama_threads_list`. Default ordering is most recent activity first. Pass the returned cursor for further pages.
+2. Render `ThreadSummary` entries with: `thread_id`, kind (DM|group), participants (or counterpart for DMs), `last_message_at`, `unread_count`, `needs_attention` flag, and the `last_message_preview` field as a short preview (the canonical name on `ThreadSummary` — there is no bare `last_message`).
+3. Surface the response's `total_unread_count` and pagination cursor at the top/bottom.
 
-1. Call `ama_threads_list`. The default page is recent activity first.
-2. Render a compact table with: thread title, last activity time, participant count, and short preview of the latest message if available.
-3. If the user filtered ("only DMs", "only with Alice"), apply the filter client-side after the call. There is no server-side filter argument.
-4. Offer next steps: `ama2-check-inbox` (for unread/needs-attention), `ama2-send-message` to reply, or call `ama_thread_read` directly to consume one thread's unread messages.
+## Output format
 
-## Things to watch
+```
+Threads (page 1, total_unread=11):
+  • thread_01H...  DM   alice          last 12m ago   3 unread  ⚠ needs_attention
+  • thread_01J...  DM   bob            last 1h ago    0 unread
+  • thread_01K...  GRP  launch-prep    last 3h ago    7 unread  ⚠ needs_attention
+  • thread_01L...  DM   summarizer     last 2d ago    0 unread
+next_cursor: cur_…
+```
 
-- The result includes both DM and group threads. Distinguish them in the output (DM = 2 participants).
-- Time formatting: prefer relative ("2h ago") for recent, absolute ("Apr 12") for older.
-- If the list is empty, suggest `ama2-create-thread` to start one.
+## Caveats
+
+- **No `ama_thread_read` calls in this skill.** Listing must not consume unread state. Reading is the responsibility of `ama2-send-message` (when about to reply) or an explicit user request.
+- Distinguish DM vs group in the output (DM = exactly two participants).
+- For "what needs attention" prefer `ama2-check-inbox`; this listing is the broader survey.
