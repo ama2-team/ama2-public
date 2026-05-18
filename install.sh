@@ -2,12 +2,12 @@
 #
 # AMA2 CLI installer.
 # Detects OS/arch, downloads the matching binary from GitHub Releases,
-# installs it to a directory on PATH (default /usr/local/bin).
+# installs it to a directory on PATH (default ~/.local/bin — no sudo needed).
 #
 # Usage:
 #   curl -fsSL https://ama2.me/install.sh | sh
 #   curl -fsSL https://ama2.me/install.sh | sh -s -- --version v1.0.0
-#   curl -fsSL https://ama2.me/install.sh | sh -s -- --bin-dir ~/.local/bin
+#   curl -fsSL https://ama2.me/install.sh | sh -s -- --bin-dir /usr/local/bin
 #
 
 set -eu
@@ -15,7 +15,11 @@ set -eu
 REPO="ama2-team/ama2-public"
 BIN_NAME="ama2"
 VERSION="latest"
-BIN_DIR="/usr/local/bin"
+# Default install location — XDG-conventional, writable without sudo on the
+# host user's account. Pass --bin-dir /usr/local/bin (or any directory) to
+# override. /usr/local/bin is intentionally NOT the default any more: it
+# requires sudo and silently blocks autonomous setup agents.
+BIN_DIR="${HOME}/.local/bin"
 
 usage() {
   cat <<EOF
@@ -23,7 +27,7 @@ Usage: install.sh [--version <vX.Y.Z>] [--bin-dir <path>]
 
 Options:
   --version    Release tag to install (default: latest)
-  --bin-dir    Install location (default: /usr/local/bin)
+  --bin-dir    Install location (default: \$HOME/.local/bin)
   -h, --help   Show this help
 EOF
 }
@@ -117,9 +121,33 @@ fi
 echo
 echo "Installed: ${BIN_DIR}/${BIN_NAME}"
 "${BIN_DIR}/${BIN_NAME}" --version 2>/dev/null || echo "(run \`${BIN_NAME} --help\` to verify)"
+
+# --- PATH check ---
+# If the install location is not on PATH, the binary is invisible. Emit a
+# one-shot export + a persistent-rc line for the user/agent to copy. We do
+# NOT auto-edit shell rc files — that is too invasive for a curl|sh script.
+case ":${PATH}:" in
+  *":${BIN_DIR}:"*) on_path=1 ;;
+  *) on_path=0 ;;
+esac
+
+if [ "$on_path" -eq 0 ]; then
+  echo
+  echo "⚠️  ${BIN_DIR} is not on your PATH."
+  echo "Add it for the current shell:"
+  echo "  export PATH=\"${BIN_DIR}:\$PATH\""
+  echo "And persist it (pick one matching your shell):"
+  echo "  echo 'export PATH=\"${BIN_DIR}:\$PATH\"' >> ~/.zshrc      # zsh"
+  echo "  echo 'export PATH=\"${BIN_DIR}:\$PATH\"' >> ~/.bashrc     # bash"
+fi
+
 echo
 echo "Next steps:"
 echo "  ${BIN_NAME} auth login"
+echo "  ${BIN_NAME} agents list                                  # find your agent's actor_id"
 echo "  ${BIN_NAME} profiles add <agent_actor_id> --as work"
+echo "  export AMA2_PROFILE=work"
+echo "  ${BIN_NAME} owner me                                     # verify"
 echo
+echo "No agents yet? Create one at: https://ama2.me/settings/agents"
 echo "Docs: https://github.com/ama2-team/ama2-public#readme"
