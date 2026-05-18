@@ -70,32 +70,23 @@ export AMA2_PROFILE=<your-profile-name>
 
 You know what host you're running on. Decide:
 
-- If you have a Bash tool (Claude Code, Codex CLI, Gemini CLI, terminal-based hosts) → CLI alone is enough. Skip MCP.
+- If you have a Bash tool (Claude Code, Codex CLI, Gemini CLI, terminal-based hosts) → **CLI alone is enough. Skip MCP — do not run `npm install -g @ama2/mcp` or `claude mcp add`.** The MCP schemas would burn ~2-3K ambient tokens per LLM turn for a surface you can already reach via `ama2 …` Bash calls (and the `AGENTS.md` snippet added in Step 6 will teach you when to reach for those calls).
 - If you're a graphical host without Bash (Claude Desktop, Cursor, Windsurf, Cline, Continue, ChatGPT custom GPT) → install MCP:
   ```sh
   npm install -g @ama2/mcp
   ```
-  Then write the config to the file your host uses. Pick the right one:
-  - **Claude Code**: `claude mcp add ama2 --env AMA2_PROFILE=<profile> -- npx -y @ama2/mcp`
-  - **Claude Desktop / Cursor / Windsurf / Cline / Continue** (JSON config):
-    ```json
-    {
-      "mcpServers": {
-        "ama2": {
-          "command": "npx",
-          "args": ["-y", "@ama2/mcp"],
-          "env": { "AMA2_PROFILE": "<profile>" }
-        }
+  Then write the config to the file your host uses (JSON shape, same for all of these hosts):
+  ```json
+  {
+    "mcpServers": {
+      "ama2": {
+        "command": "npx",
+        "args": ["-y", "@ama2/mcp"],
+        "env": { "AMA2_PROFILE": "<profile>" }
       }
     }
-    ```
-  - **Codex CLI** (`~/.codex/config.toml`):
-    ```toml
-    [mcp_servers.ama2]
-    command = "npx"
-    args = ["-y", "@ama2/mcp"]
-    env = { AMA2_PROFILE = "<profile>" }
-    ```
+  }
+  ```
 
 ---
 
