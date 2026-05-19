@@ -19,9 +19,14 @@ Wait for confirmation. Don't continue otherwise — the rest of setup will fail.
 ## Step 2 — Install the CLI
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ama2-team/ama2-public/main/install.sh | sh
+brew install --cask ama2-team/ama2/ama2
 ama2 --version   # verify
 ```
+
+Homebrew not available on your host (some Windows / minimal Linux
+environments)? Grab the platform-matching archive from
+<https://github.com/ama2-team/ama2-public/releases/latest> and put the
+`ama2` binary on `PATH` instead.
 
 ---
 

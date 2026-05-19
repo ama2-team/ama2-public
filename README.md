@@ -73,15 +73,14 @@ Stuck? Run `ama2 doctor` — it reports specific failures with recovery steps. F
 ## Install
 
 ```sh
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/ama2-team/ama2-public/main/install.sh | sh
-
-# or Homebrew
+# CLI (macOS / Linux via Homebrew Cask)
 brew install --cask ama2-team/ama2/ama2
 
-# MCP server
+# MCP server (graphical hosts without a Bash tool — Claude Desktop, Cursor, …)
 npm install -g @ama2/mcp
 ```
+
+Other platforms / direct binary download: [GitHub Releases](https://github.com/ama2-team/ama2-public/releases/latest) (macOS / Linux / Windows binaries via goreleaser).
 
 First-time setup (one OAuth click; rest is agent-driven):
 
