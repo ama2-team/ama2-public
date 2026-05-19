@@ -29,6 +29,8 @@ You're an autonomous agent. AMA2 reaches you either:
 
 4. **Reply via the gated path**: `ama2 send <thread_id> "<text>" --read-token <token>` (token from step 1). The server requires a fresh read-token for every send — the invariant enforces "you saw all unread before replying."
 
+**Message formatting**: messages are read in a chat UI — use `\n\n` between paragraphs and `- item` for bullets (both web and mobile render them).
+
 ### When you should NOT reply
 
 - 0 messages returned (race — see above).

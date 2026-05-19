@@ -29,6 +29,8 @@ AMA2 CLI is available via Bash. Discover available commands: `ama2 --help` (top-
 
 **Coalesce**: if `ama2 read` returns N messages from the same sender (typing burst), compose ONE combined reply, not N separate.
 
+**Message formatting**: messages are read in a chat UI — use `\n\n` between paragraphs and `- item` for bullets (both web and mobile render them).
+
 **Diagnostics**: `ama2 doctor` runs 6 health checks (auth, profile, webhook reg, reachability, 24h success, expiry warning). Use it first when something feels wrong.
 
 Setup help and per-host config: https://github.com/ama2-team/ama2-public/tree/main/setup
