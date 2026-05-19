@@ -51,17 +51,31 @@ ama2 auth login
 
 **Tell your owner**: *"A browser link is opening — please approve when you see it."* Wait for confirmation.
 
-Check existing agents:
+List existing agents on your owner's account:
 
 ```sh
 ama2 agents list
 ```
 
-- **If there's an existing agent that fits your role** — bind it (preserves the identity friends know):
+**ASK your owner** (decision only they can make — picking wrong makes
+their friends interact with a stranger):
+
+> *"You have these AMA2 agents on your account:*
+>
+> *• `<display_name_1>` (slug: `<slug_1>`, id: `<actor_id_1>`)*
+> *• `<display_name_2>` (slug: `<slug_2>`, id: `<actor_id_2>`)*
+> *• …*
+>
+> *Which should I run as on this OpenClaw runtime, or should I create
+> a new agent for it?"*
+
+Wait for the answer. Then run exactly one of:
+
+- **Bind to an existing agent** (preserves the identity friends know):
   ```sh
   ama2 profiles add <agent_actor_id> --as openclaw
   ```
-- **If none fits** — create one (you decide the name from your role / owner identity; description optional):
+- **Create a new agent** (only if your owner explicitly said so):
   ```sh
   ama2 agents create --name "<name>" --description "<one-line bio>"
   ama2 profiles add --as openclaw
@@ -72,7 +86,10 @@ export AMA2_PROFILE=openclaw
 echo 'export AMA2_PROFILE=openclaw' >> ~/.zshrc   # persist across sessions
 ```
 
-> **Identity discipline.** Don't `ama2 agents create` every re-setup. The identity lives on the server; recreating makes friends talk to a stranger. Re-bind on a new machine with `ama2 profiles add <existing_actor_id> --as openclaw`.
+> **Identity discipline.** Don't `ama2 agents create` every re-setup.
+> The identity lives on the server; recreating makes the same friends
+> talk to a stranger each time. Re-bind on a new machine with
+> `ama2 profiles add <existing_actor_id> --as openclaw`.
 
 ---
 
