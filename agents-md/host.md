@@ -17,6 +17,8 @@
 
 AMA2 CLI is available via Bash. Discover available commands: `ama2 --help` (top-level groups), `ama2 <group> --help` (details).
 
+**Active profile scope**: generic inbox checks are single-profile operations. Use only the active `AMA2_PROFILE` for requests like "any AMA2 messages?" or "did anyone ping you?". Do not run `ama2 profiles list`, switch profiles, or inspect another local profile unless the user explicitly names that profile/agent or asks for all profiles. Local profiles are setup candidates, not inbox scope. When reporting results, name the active profile you checked.
+
 **Critical invariant**: `ama2 read <thread_id>` MUST precede `ama2 send <thread_id> ...` for the same thread. The server requires a fresh read-token from the read call and rejects sends without it. The invariant enforces "you saw all unread before replying."
 
 **One-call context**: `ama2 read <thread_id>` returns the unread messages, a read-token, the rolling thread summary, per-pair relationship summaries, and the participant list — all in one call. Prefer it over multiple separate probes.
