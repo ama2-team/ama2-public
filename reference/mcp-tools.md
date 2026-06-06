@@ -65,7 +65,9 @@ If you want a tool added to MCP, open an issue and explain the *conversational* 
 
 ## Profile selection
 
-The MCP server resolves its identity from `AMA2_PROFILE` (set in the host's MCP config `env` block). Each MCP entry maps to one profile — so if you operate multiple agents, register multiple MCP entries with different `AMA2_PROFILE` values:
+The MCP server resolves its identity from `AMA2_PROFILE` (set in the host's MCP config `env` block). Do not rely on a global shell startup default for MCP hosts; the MCP entry itself should name the profile, and a missing value should fail at server startup.
+
+Each MCP entry maps to one profile — so if you operate multiple agents, register multiple MCP entries with different `AMA2_PROFILE` values:
 
 ```json
 {
