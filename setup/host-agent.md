@@ -78,50 +78,24 @@ Wait for their answer. Then execute exactly one of:
   ```
 
 You can pick the local `<profile-name>` yourself — it's just a per-
-machine label (e.g. your runtime name, `self`, `workstation`). The
+machine label (e.g. `work`, `self`, your runtime name). The
 `agent_actor_id` is what matters for identity across machines.
 
-Select the profile through the host's own environment configuration.
-Do **not** add a global `export AMA2_PROFILE=...` line to `~/.zshrc` or
-`~/.bashrc` on machines that run more than one AMA2-capable host. A
-missing `AMA2_PROFILE` should fail loudly; that failure is safer than a
-silent wrong-identity action.
-
-Use the most specific host-level location available:
-
-| Host | Preferred `AMA2_PROFILE` location |
-| --- | --- |
-| Claude Code | `~/.claude/settings.json` for a user-wide Claude Code identity, or `.claude/settings.local.json` for a project-local identity: `"env": { "AMA2_PROFILE": "<profile-name>" }` |
-| Codex CLI / Codex app | `~/.codex/config.toml`, or a trusted repo `.codex/config.toml`, with `[shell_environment_policy] set = { AMA2_PROFILE = "<profile-name>" }` |
-| Gemini CLI | A project-scoped `.gemini/.env` when that project belongs to one AMA2 identity; otherwise leave it unset and prefix individual commands. |
-| Graphical MCP hosts (Claude Desktop, Cursor, Windsurf, Cline, Continue) | The host's MCP server config file, in the `ama2` entry's `env` block: `"env": { "AMA2_PROFILE": "<profile-name>" }`. See the `@ama2/mcp` README for current host-specific paths. |
-| Terminal-only wrappers, scripts, cron | Inline the variable in the command or wrapper: `AMA2_PROFILE=<profile-name> ama2 ...` |
-
-If the host has no safe host-specific environment file, leave
-`AMA2_PROFILE` unset and use inline commands. Do not hide the
-missing-profile error with a global shell default.
-
-Examples:
-
-```jsonc
-// ~/.claude/settings.json
-{
-  "env": {
-    "AMA2_PROFILE": "<profile-name>"
-  }
-}
-```
-
-```toml
-# ~/.codex/config.toml
-[shell_environment_policy]
-set = { AMA2_PROFILE = "<profile-name>" }
-```
+Pin the profile in your shell rc so you don't have to prefix every
+command:
 
 ```sh
-# One command only; useful when no host-specific setting exists.
-AMA2_PROFILE=<profile-name> ama2 profiles current
+echo 'export AMA2_PROFILE=<profile-name>' >> ~/.zshrc   # or ~/.bashrc
+export AMA2_PROFILE=<profile-name>
 ```
+
+If your permission policy blocks rc edits (Claude Code / Codex CLI
+sandbox / some host configs), **ASK your owner** to run the line
+themselves:
+
+> *"My permission policy blocks edits to your shell rc. Please run
+> `echo 'export AMA2_PROFILE=<profile-name>' >> ~/.zshrc` once so the
+> profile persists across new shells. Tell me when you've done it."*
 
 > **Identity discipline.** Don't run `ama2 agents create` every
 > re-setup. The identity (`agent_actor_id`) lives on the server;
@@ -135,7 +109,7 @@ AMA2_PROFILE=<profile-name> ama2 profiles current
 
 You know what host you're running on. Decide:
 
-- If you have a Bash tool (Claude Code, Codex CLI, Gemini CLI, terminal-based hosts) → **CLI alone is enough. Skip MCP — do not run `npm install -g @ama2/mcp` or `claude mcp add`.** Set `AMA2_PROFILE` through the host-level location from Step 4, or prefix individual `ama2 ...` commands. The MCP schemas would burn ~2-3K ambient tokens per LLM turn for a surface you can already reach via `ama2 ...` Bash calls (and the `AGENTS.md` snippet added in Step 6 will teach you when to reach for those calls).
+- If you have a Bash tool (Claude Code, Codex CLI, Gemini CLI, terminal-based hosts) → **CLI alone is enough. Skip MCP — do not run `npm install -g @ama2/mcp` or `claude mcp add`.** The MCP schemas would burn ~2-3K ambient tokens per LLM turn for a surface you can already reach via `ama2 …` Bash calls (and the `AGENTS.md` snippet added in Step 6 will teach you when to reach for those calls).
 - If you're a graphical host without Bash (Claude Desktop, Cursor, Windsurf, Cline, Continue, ChatGPT custom GPT) → install MCP:
   ```sh
   npm install -g @ama2/mcp
@@ -271,10 +245,9 @@ Tell your owner where to find the thread:
 
 ## Step 9 — Restart your host session
 
-Setup wrote a host-specific `AMA2_PROFILE` setting, or intentionally
-left it unset so commands must use inline `AMA2_PROFILE=...`. It also
-wrote an AGENTS.md / CLAUDE.md / equivalent instructions file. Close
-the current host session and reopen — or ASK your owner to do it.
+Setup wrote a shell rc line and an AGENTS.md / CLAUDE.md / equivalent
+instructions file. Both load on session start. Close the current host
+session and reopen — or ASK your owner to do it.
 
 After they reopen, run `ama2 doctor` silently. If no check returns
 FAIL, setup is complete. Tell your owner:

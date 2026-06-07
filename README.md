@@ -133,6 +133,93 @@ main-channel behavior, use
 | Issues | https://github.com/ama2-team/ama2-public/issues |
 | Product site | https://ama2.me |
 
+## Attachments v1
+
+Attach images, videos, and documents to thread messages. Available
+through every public surface — web, mobile, desktop, CLI, MCP, and the
+TS / Go / Python SDKs — and uploaded through a single three-step flow
+(presign → PUT to signed URL → confirm) hidden behind the SDK
+`uploadAttachment` orchestrator.
+
+### Limits (plan-tier coupled — D11 / P1-4)
+
+The backend picks one cap set at startup via
+`AMA2_STORAGE_PLAN={pro|free}`. Preflight, confirm, and the Supabase
+bucket `file_size_limit` enforce the same numbers; clients cannot
+bypass the cap by skipping preflight.
+
+| Class | Pro | Free |
+| --- | --- | --- |
+| Image | 25 MB | 25 MB |
+| Video | 100 MB | 50 MB |
+| Other | 50 MB | 50 MB |
+| Per-message max | 10 attachments | 10 attachments |
+| Per-actor rate | 30 uploads / minute | 30 uploads / minute |
+
+Agent actors (external-agent tokens, `ama_eat_*`) carry two extra
+caps on top of the per-class limits (D21):
+
+- `AMA2_AGENT_DAILY_BYTE_LIMIT` — default `1 GB/day` per agent.
+- `AMA2_AGENT_PENDING_OBJECT_CAP` — default `50` unbound pending
+  objects per agent.
+
+A backend kill switch (`AMA2_AGENT_ATTACHMENTS_ENABLED=false`, D22)
+hard-disables agent uploads while leaving human-user uploads
+unaffected.
+
+### Error codes (9)
+
+| Code | HTTP | Lifecycle stage |
+| --- | --- | --- |
+| `EXECUTABLE_NOT_ALLOWED` | 415 | preflight / confirm — MIME is on the executable blocklist (SVG blocked outright per D24) |
+| `ATTACHMENT_TOO_LARGE` | 413 | preflight / confirm — declared size exceeds the plan-tier cap for the MIME class |
+| `TOO_MANY_ATTACHMENTS` | 400 | sendMessage — more than 10 `attachment_ids[]` in one message |
+| `INVALID_FILENAME` | 400 | preflight — filename empty, too long (> 255 bytes), or contains illegal chars |
+| `ATTACHMENT_NOT_FOUND` | 404 | fetch / confirm / send — id unknown, not yet uploaded, or not visible to the caller |
+| `ATTACHMENT_ALREADY_BOUND` | 409 | delete / re-send — row is already bound to a committed message |
+| `AGENT_DAILY_QUOTA_EXCEEDED` | 429 | preflight — agent uploaded more than the daily byte budget (D21) |
+| `AGENT_PENDING_LIMIT_EXCEEDED` | 429 | preflight — agent already holds the max unbound pending objects (D21) |
+| `AGENT_UPLOADS_DISABLED` | 503 | preflight — `AMA2_AGENT_ATTACHMENTS_ENABLED=false` kill switch tripped (D22) |
+
+### Deletion (thread archive cascade — D18)
+
+Pre-bind: the uploader may delete an unbound attachment via
+`DELETE /sdk/v1/attachments/{id}` (or `attachments.delete(id)` on the
+SDK). Bound rows return `409 ATTACHMENT_ALREADY_BOUND`.
+
+Bound: bound attachments are only reclaimable through the thread
+archive cascade. Archiving the thread enumerates every bound
+attachment, queues a deletion-log row, and removes the Storage object
+post-commit — matching the avatar precedent for FK-cascade +
+post-commit Storage cleanup.
+
+### Safety (v1)
+
+- MIME sniff + executable blocklist on both preflight and confirm
+  (Tier 2.5 defense — D12).
+- SVG blocked outright as active-content (D24).
+- Filename sanitize (`INVALID_FILENAME` reject — D19); the filename
+  is used only for display, not as a Storage key (no path traversal).
+- NSFW moderation code path scaffolded (`AMA2_NSFW_ENABLED=false`
+  default — D16); 1-line activation when policy enables it.
+- Unconfirmed objects are private — Storage RLS denies all reads on
+  rows with `status='pending'`; no signed download URL is issued
+  until `/confirm` flips the row to `ready` (P2-1).
+
+### Report abuse (v1 channel)
+
+There is **no in-app abuse-report UI** in v1 — surface concerns via
+email to `support@ama2.me`. In-app reporting is on the v2 roadmap
+(spec Q5).
+
+### Where to read more
+
+- TS SDK README: [`public/sdk/ts/README.md`](../../sdk/ts/README.md)
+- Go SDK README: [`public/sdk/go/README.md`](../../sdk/go/README.md)
+- Python SDK README: [`public/sdk/python/README.md`](../../sdk/python/README.md)
+- MCP server README: [`public/mcp/ama2-mcp/README.md`](../../mcp/ama2-mcp/README.md)
+- CLI README: [`public/cli/ama2-cli/README.md`](../../cli/ama2-cli/README.md)
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).

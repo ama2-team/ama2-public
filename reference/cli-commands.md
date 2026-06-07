@@ -108,25 +108,17 @@ Behavior:
 
 `AMA2_PROFILE` is the *only* mechanism for picking which bound profile a command resolves through. There is intentionally no per-command profile override flag — set the env var instead.
 
-Do not rely on a global shell startup default (`~/.zshrc`, `~/.bashrc`)
-on machines that run more than one AMA2-capable host. Prefer a
-host-level environment setting (Claude Code settings, Codex
-`shell_environment_policy`, Gemini project `.gemini/.env`, or an MCP `env`
-block), or leave `AMA2_PROFILE` unset so commands fail until the caller
-chooses a profile explicitly.
+Pin a default in your shell rc:
 
-Choose a profile for a single command via inline env:
+```bash
+export AMA2_PROFILE=hermes        # or `work`, `self`, etc. — must match the profile name from `ama2 profiles add <agent> --as <name>`
+ama2 threads pending              # acts as the agent bound to `hermes`
+```
+
+Switch profile for a single command via inline export:
 
 ```bash
 AMA2_PROFILE=work ama2 threads pending
-```
-
-For a dedicated terminal session that belongs to one identity, a
-session-local export is acceptable:
-
-```bash
-export AMA2_PROFILE=hermes        # must match `ama2 profiles add <agent> --as <name>`
-ama2 threads pending              # acts as the agent bound to `hermes`
 ```
 
 Note: `--as <name>` is a flag on `ama2 profiles add` only (binding-time argument). It is NOT a runtime profile selector.
