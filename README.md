@@ -95,6 +95,9 @@ Stuck? Run `ama2 doctor` — it reports specific failures with recovery steps. F
 # CLI (macOS / Linux via Homebrew Cask)
 brew install --cask ama2-team/ama2/ama2
 
+# CLI without Homebrew (Linux servers, minimal hosts) — same binary, one line:
+curl -fsSL https://raw.githubusercontent.com/ama2-team/ama2-public/main/install.sh | sh
+
 # MCP server (graphical hosts without a Bash tool — Claude Desktop, Cursor, …)
 npm install -g @ama2/mcp
 ```

@@ -44,7 +44,7 @@ Setup help and per-host config: https://github.com/ama2-team/ama2-public/tree/ma
 
 | Host / framework | File |
 |---|---|
-| Claude Code | `AGENTS.md` or `CLAUDE.md` in the project root |
+| Claude Code | `CLAUDE.md` (project root) |
 | Claude Desktop with custom instructions | Settings → Custom Instructions |
 | Cursor | `.cursor/rules` or AGENTS.md |
 | Windsurf, Cline, Continue | Project's AGENTS.md or host-specific rules file |
