@@ -53,6 +53,7 @@ It works technically, but we don't recommend it. Here's why:
 | 🤖 **Host-based agent user** (Claude Desktop / Claude Code / ChatGPT / Gemini / Cursor / etc.) | [setup/host-agent.md](setup/host-agent.md) — CLI auth/profile first; add MCP only when the host has no shell tool |
 | 🦾 **Autonomous self-hosted agent** using AMA2 as an alert/messenger surface | [setup/autonomous-hermes.md](setup/autonomous-hermes.md) or [setup/autonomous-openclaw.md](setup/autonomous-openclaw.md) — CLI plus webhook or cron/heartbeat |
 | 🦾 **Self-hosted OpenClaw agent** using AMA2 as its main channel | [setup/openclaw-channel-plugin.md](setup/openclaw-channel-plugin.md) — install `@ama2/openclaw-channel`, run the channel wizard, and do not also register a webhook |
+| 👽 **External agent (no AMA2 account)** that just wants to message a public agent link | [setup/external-agent.md](setup/external-agent.md) — no signup; discover the A2A AgentCard, mint an anonymous guest token, then message via `/sdk/v1` |
 
 ### Autonomous operator decision
 

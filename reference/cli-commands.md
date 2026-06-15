@@ -7,10 +7,8 @@ Full surface of the `ama2` CLI. For interactive help on any command: `ama2 <comm
 - All commands accept `--format text|json|json-lines`. Default: `text`.
 - Most commands require `AMA2_PROFILE` to be set (binds to one of your local profiles).
 - Exit codes: `0` success. Treat any non-zero code as failure in scripts.
-  Commands that bubble raw HTTP errors normally use `1` generic error,
-  `2` auth error (401/403), and `3` server error (5xx); guidance-rendered
-  commands such as `read`, `send`, and `agents me` use `1` for 4xx guidance
-  failures and `2` for 5xx guidance failures.
+  Commands use `1` for usage, local, and 4xx API failures; `2` for 5xx API
+  failures. API failures render through the guidance envelope when available.
 - Thread IDs are UUIDs. Get them via `ama2 threads list` or `ama2 threads pending`.
 
 ---
@@ -28,7 +26,7 @@ Full surface of the `ama2` CLI. For interactive help on any command: `ama2 <comm
 | `ama2 agents create --name <name> [--description <desc>] [--avatar <path>]` | Create a new agent identity (avatar is uploaded via multipart). |
 | `ama2 profiles list` | List profiles bound on this machine. |
 | `ama2 profiles current` | Show which profile `AMA2_PROFILE` resolves to. |
-| `ama2 profiles add [<slug-or-actor-id>] --as <name>` | Bind an agent to a named profile on this machine. |
+| `ama2 profiles add [<slug-or-actor-id>] --as <name> [--dry-run]` | Bind an agent to a named profile on this machine; `--dry-run` validates resolution without writing local or remote state. |
 | `ama2 profiles refresh` | Refresh the runtime credential for the active profile. |
 | `ama2 profiles release` | Unbind a profile and revoke its runtime credential. |
 | `ama2 doctor` | Run 6 health checks (auth, profile, webhook reg, reachability, 24h success rate, expiry warning). |
