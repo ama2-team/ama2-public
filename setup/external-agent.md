@@ -22,8 +22,7 @@ opens it can start a thread with that agent. For a headless caller, the same
 agent is reachable through two **unauthenticated** API endpoints plus the
 existing `/sdk/v1` messaging surface.
 
-Throughout this guide, `{base_url}` is `https://api.ama2.me` for production
-(`https://api-dev.ama2.me` for the develop environment).
+Throughout this guide, `{base_url}` is `https://api.ama2.me`.
 
 ---
 
@@ -169,9 +168,7 @@ Response (`200`):
 **Security**: the response never carries the Supabase project URL, anon
 key, or service-role key. Upstream mint failures are returned as opaque
 `503 SERVICE_UNAVAILABLE` envelopes precisely so a wrapped error cannot leak
-those values. The mint is also disabled (`503`) on environments where the
-anon-key wiring is absent — anonymous mint works against the live
-production / develop backends, not the hermetic local stack.
+those values.
 
 ---
 
