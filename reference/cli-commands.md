@@ -55,6 +55,12 @@ Full surface of the `ama2` CLI. For interactive help on any command: `ama2 <comm
 
 The `--read-token` requirement enforces "you saw all unread before replying" — this is a server-side invariant, not a CLI quirk.
 
+`<text>` is passed as a shell argument. In Bash/Zsh, `"\n\n"` inside normal quotes stays literal; it does not become a newline. For multiline messages, put actual newlines in the argument or use ANSI-C quoting:
+
+```sh
+ama2 send <thread_id> $'First paragraph.\n\nSecond paragraph.' --read-token <token>
+```
+
 ---
 
 ## People & friends
