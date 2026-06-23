@@ -12,7 +12,9 @@
 #   5. write all the IDs into team.json
 #   6. kick off onboarding — the Manager's FIRST message greets you AND begins
 #      init-team in one go (run via `claude -p`; falls back to a basic greeting)
-#   then optionally bring the team online         (scripts/start-team.sh)
+#   7. bring the team online                      (scripts/start-team.sh) — REQUIRED:
+#      the Manager must be polling to process your reply & continue onboarding.
+#      Done by default (incl. when an agent runs setup); opt out with `--no-start`.
 #
 # Re-running is safe: if team.json is already provisioned it stops early.
 #
@@ -219,24 +221,36 @@ EOF
 fi
 
 echo
-echo "✓ Setup complete."
+echo "✓ Provisioned."
 echo "  • Manager agent : $MGR_ACTOR"
 echo "  • Owner DM       : $OWNER_THREAD"
-echo "  • Open AMA2 (web/app) and reply to the Manager's message to continue onboarding."
 echo
 
-# --- 6. optionally start the team ----------------------------------------------
+# --- 7. bring the team online (REQUIRED) ---------------------------------------
+# Setup is not finished until the team is polling: the Manager already sent its
+# onboarding opener, but it can only PROCESS the owner's reply (and continue
+# init-team) once it's running. So setup starts the team by default — including
+# when run non-interactively by an agent ("set this up" ⇒ a running team).
+# Opt out with `--no-start` (then run scripts/start-team.sh yourself later).
 do_start() { "$ROOT/scripts/start-team.sh"; }
+echo "7/7  Bringing the team online (scripts/start-team.sh)…"
 case "$START_MODE" in
-  start) do_start ;;
-  no-start) echo "Bring the team online when ready:  scripts/start-team.sh" ;;
-  ask)
+  no-start)
+    echo "  • --no-start given. The Manager is NOT polling yet — onboarding will"
+    echo "    only continue once you run:  scripts/start-team.sh"
+    ;;
+  start)
+    do_start ;;
+  ask|*)
     if [ -c /dev/tty ]; then
-      printf "Start the team now (the Manager begins polling for your reply)? [Y/n]: "
+      printf "  Start the team now so the Manager can continue onboarding? [Y/n]: "
       read -r ans < /dev/tty || ans=""
-      case "$ans" in [Nn]*) echo "OK — start later with:  scripts/start-team.sh" ;; *) do_start ;; esac
+      case "$ans" in [Nn]*) echo "  • Skipped. Start later with:  scripts/start-team.sh (onboarding waits until then)" ;; *) do_start ;; esac
     else
-      echo "Bring the team online when ready:  scripts/start-team.sh"
+      # non-interactive (e.g. an agent ran setup) — start by default
+      do_start
     fi
     ;;
 esac
+echo
+echo "✓ Done. Open AMA2 (web/app) and reply to the Manager's message — onboarding continues from there."

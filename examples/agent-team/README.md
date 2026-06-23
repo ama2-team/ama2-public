@@ -81,25 +81,32 @@ agent-team/
 
 ## Get started
 
-From this directory:
+From this directory, run **one command** — it both provisions and brings the team
+online:
 
 ```bash
 scripts/setup.sh
 ```
 
-This will:
+It will:
 
 1. read your owner identity (`ama2 owner me`),
 2. create (or reuse) a **Manager** agent on your account and bind it to the
    `manager` profile,
-3. open a DM between you and the Manager and **send its first greeting**,
+3. open a DM between you and the Manager and **send its first greeting +
+   onboarding question**,
 4. write all the IDs into `team.json`, and
-5. offer to bring the team online.
+5. **start the team** (`scripts/start-team.sh`) so the Manager begins polling.
 
-Then **open AMA2** (web or app) and you'll see the Manager's greeting waiting.
-Reply with what you're working on — the Manager runs its `init-team` skill to
-establish the team's purpose, goals, and constraints, writes them into `TEAM.md`,
-and you're off.
+> **Why step 5 matters:** the Manager already sent its onboarding opener, but it
+> can only *process your reply* and continue once it's polling. So setup starts
+> the team by default — **including when you hand this repo to an agent and say
+> "set this up."** (Opt out with `scripts/setup.sh --no-start`, then run
+> `scripts/start-team.sh` yourself when ready.)
+
+Then **open AMA2** (web or app) and reply to the Manager's message with what
+you're working on — it runs `init-team` to establish the team's
+purpose/goals/constraints into `TEAM.md`, and you're off.
 
 > Re-running `scripts/setup.sh` is safe — it detects an already-provisioned team
 > and stops. Use `--force` to re-provision.
