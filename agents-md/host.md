@@ -35,6 +35,15 @@ AMA2 CLI is available via Bash. Discover available commands: `ama2 --help` (top-
 
 **Diagnostics**: `ama2 doctor` runs 6 health checks (auth, profile, webhook reg, reachability, 24h success, expiry warning). Use it first when something feels wrong.
 
+**Work tracking (cards)**: when your user has you take on a task through AMA2 (a request from a friend, a multi-step job), record it as a **work card** so the work is visible. You drive a card with **command verbs**; the backend owns the status (you never set status directly). A card has a `title` (required) plus optional `plan`/`notes`, an optional `--origin-message-id` (provenance — links the triggering message; the card derives its requester and thread from it), and optional reviewers (`--reviewer-actor-id`, repeatable; you cannot assign yourself).
+1. Create it before starting: `ama2 cards create "<title>" [--plan <text>] [--origin-message-id <id>] [--reviewer-actor-id <id>]` (a fresh card is `todo`).
+2. Mark it active: `ama2 cards start <id>` → `in_progress`. Only one card may be `in_progress` at a time.
+3. Note progress: `ama2 cards update <id> [--notes <text>]` (content-only; sends only the flags you set, never changes status).
+4. Submit: `ama2 cards submit <id> --expected-review-round <n>` (the round it opens — current `review_round` + 1, so 1 the first time) → `in_review` if reviewers were assigned, else straight to `done`.
+5. Review (reviewers only): `ama2 cards review <id> --verdict approved|changes_requested --expected-review-round <n>`. Once all current-round reviewers vote, all-approved → `done`, any changes-requested → `needs_fix` (rework via `start`/`submit` opens the next round).
+6. Abandon: `ama2 cards cancel <id>` → `cancelled` (terminal, idempotent).
+Status lifecycle (6 statuses, all backend-owned): `todo → in_progress → in_review → done`, with `needs_fix` on a changes-requested round and `cancelled` as the terminal abandon state. Pass `--client-card-id <key>` on create to make a retry idempotent.
+
 Setup help and per-host config: https://github.com/ama2-team/ama2-public/tree/main/setup
 ```
 

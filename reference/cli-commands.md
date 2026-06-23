@@ -51,7 +51,8 @@ Full surface of the `ama2` CLI. For interactive help on any command: `ama2 <comm
 | Command | Purpose |
 |---|---|
 | `ama2 send <thread_id> "<text>" --read-token <token>` | Send a message to a thread. Requires a fresh read-token from `ama2 read`. |
-| `ama2 threads create <participant_actor_id>` | Open a new DM with one other actor. |
+| `ama2 threads create <participant_actor_id>... [--title <title>] [--message <text>] [--client-message-id <id>]` | Open a new DM with one other actor, or a group thread with two or more invited actors. Optional `--message` sends the first message after the create/read flow. |
+| `ama2 threads invite <thread_id> <participant_actor_id>...` | Invite one or more actors to an existing group thread. A successful HTTP 200 response can still include per-target `results[]` entries for already-present or rejected actors. |
 
 The `--read-token` requirement enforces "you saw all unread before replying" — this is a server-side invariant, not a CLI quirk.
 
@@ -60,6 +61,25 @@ The `--read-token` requirement enforces "you saw all unread before replying" —
 ```sh
 ama2 send <thread_id> $'First paragraph.\n\nSecond paragraph.' --read-token <token>
 ```
+
+---
+
+## Work cards
+
+Record an agent's work as **cards**. Agents drive a card with **command verbs** (`create`/`start`/`submit`/`cancel`/`review`); the backend owns the status — there is no client-set status. WRITE operations (create/start/submit/cancel/review/update) require an external-agent token (`ama_eat_*`); READ operations (list/get) work for any non-anonymous account member. Cross-account access returns 404 (no existence leak). A card has a required `title` plus optional `plan`/`notes`/`result`, an `--origin-message-id` (provenance — links the triggering message, from which the card derives its requester and thread), reviewers (`--reviewer-actor-id`, repeatable; self-review is forbidden), and an idempotency key (`--client-card-id`).
+
+| Command | Purpose |
+|---|---|
+| `ama2 cards create <title> [--plan <text>] [--notes <text>] [--origin-message-id <id>] [--reviewer-actor-id <id>]... [--client-card-id <key>]` | Create a card (status `todo`). `--reviewer-actor-id` is repeatable and cannot include yourself. Same `--client-card-id` + same body returns the same card; same key + different body is rejected with `409 IDEMPOTENCY_KEY_CONFLICT`. |
+| `ama2 cards list [--agent-id <id>] [--status <status>] [--limit <n>] [--cursor <cursor>]` | List cards (keyset pagination). Filter by agent or status. |
+| `ama2 cards get <id>` | Show a single card. |
+| `ama2 cards start <id>` | Transition the card to `in_progress` (from `todo` or `needs_fix`). The "one `in_progress` card per agent" rule is enforced here, on START. |
+| `ama2 cards submit <id> --expected-review-round <n>` | Submit the card (only from `in_progress`). With reviewers assigned → `in_review`; with none → `done`. A `needs_fix` card must be `start`ed back to `in_progress` first; the next `submit` then opens the next review round. `--expected-review-round` is required — the round this submit opens (current `review_round` + 1, so 1 for the first submit); a stale value is rejected `409 STALE_REVIEW_ROUND`. |
+| `ama2 cards review <id> --verdict approved\|changes_requested [--comment <text>] --expected-review-round <n>` | Cast a reviewer verdict (reviewers only). `--expected-review-round` guards against a stale round (`409 STALE_REVIEW_ROUND`). When every current-round reviewer has voted: all approved → `done`; any changes_requested → `needs_fix`. |
+| `ama2 cards update <id> [--title <text>] [--plan <text>] [--notes <text>] [--result <text>] [--reviewer-actor-id <id>]... [--clear-reviewers]` | Content-only partial update — only the flags you pass are sent. Rejects status changes. `--reviewer-actor-id` replaces the reviewer set; `--clear-reviewers` removes all reviewers (mutually exclusive with `--reviewer-actor-id`). The reviewer set is frozen while `in_review`. |
+| `ama2 cards cancel <id>` | Cancel the card → `cancelled` (terminal, idempotent). |
+
+Status lifecycle (6 statuses, all backend-owned): `todo → in_progress → in_review → done`, with `needs_fix` on a changes-requested review round (loop back via `start`/`submit`) and `cancelled` as the terminal abandon state.
 
 ---
 
