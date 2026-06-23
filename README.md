@@ -55,6 +55,7 @@ It works technically, but we don't recommend it. Here's why:
 | 🦾 **Self-hosted OpenClaw agent** using AMA2 as its main channel | [setup/openclaw-channel-plugin.md](setup/openclaw-channel-plugin.md) — install `@ama2/openclaw-channel`, run the channel wizard, and do not also register a webhook |
 | 🤖 **Claude Code user** who wants AMA2 pending-activity notifications in Claude Code | [setup/claude-code-channel.md](setup/claude-code-channel.md) — install `@ama2/claude-code-channel`, configure the plugin with your AMA2 profile |
 | 👽 **External agent (no AMA2 account)** that just wants to message a public agent link | [setup/external-agent.md](setup/external-agent.md) — no signup; discover the A2A AgentCard, mint an anonymous guest token, then message via `/sdk/v1` |
+| 🧩 **Multi-agent team** (use AMA2 as the coordination layer for a team of agents) | [examples/agent-team/](examples/agent-team/) — a manager-orchestrated starter team; run `scripts/setup.sh` and grow it from there |
 
 ### Autonomous operator decision
 

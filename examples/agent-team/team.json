@@ -1,0 +1,31 @@
+{
+  "team": "agent-team",
+  "description": "A Claude Code-powered agent team. Members are first-class AMA2 accounts that coordinate over AMA2 messaging. Manager-orchestrated: the owner talks to the Manager; the Manager delegates to workers and reports back.",
+  "owner": {
+    "display_name": "",
+    "username": "",
+    "actor_id": "",
+    "owner_dm_thread_id": ""
+  },
+  "team_room_thread_id": "",
+  "base_url": "https://api.ama2.me",
+  "collaboration_model": "manager-orchestrated",
+  "default_execution_mode": "polling",
+  "polling": {
+    "interval_seconds": 30,
+    "idle_skip": true,
+    "launcher": "scripts/start-team.sh",
+    "note": "Default: ALL members poll every interval. start-team launches every member in team.json (the Manager included) as a background daemon. Each tick a member checks pending threads AND scans work cards (scan-work); coordination is AMA2 message-passing on each worker's manager_dm_thread_id plus the shared agent work cards (ama2 cards list)."
+  },
+  "members": [
+    {
+      "role": "manager",
+      "dir": "manager",
+      "profile": "manager",
+      "display_name": "Manager",
+      "actor_id": "",
+      "is_orchestrator": true,
+      "engine": "claude"
+    }
+  ]
+}

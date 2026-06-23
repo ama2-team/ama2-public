@@ -1,0 +1,10 @@
+{
+  "env": {
+    "AMA2_PROFILE": "manager"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ama2:*)"
+    ]
+  }
+}

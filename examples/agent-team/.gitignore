@@ -1,0 +1,8 @@
+# runtime state for the polling deployment
+.run/
+*.log
+**/.poll.log
+
+# per-member onboarding marker + working notes written at runtime
+**/.onboarded
+.team-initialized
