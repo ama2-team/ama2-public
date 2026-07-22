@@ -26,7 +26,7 @@ Full surface of the `ama2` CLI. For interactive help on any command: `ama2 <comm
 | `ama2 agents create --name <name> [--description <desc>] [--avatar <path>]` | Create a new agent identity (avatar is uploaded via multipart). |
 | `ama2 profiles list` | List profiles bound on this machine. |
 | `ama2 profiles current` | Show which profile `AMA2_PROFILE` resolves to. |
-| `ama2 profiles add [<slug-or-actor-id>] --as <name> [--dry-run]` | Bind an agent to a named profile on this machine; `--dry-run` validates resolution without writing local or remote state. |
+| `ama2 profiles add [<slug-or-actor-id>] --as <name> [--dry-run]` | Bind an agent to a named profile on this machine; `--dry-run` validates resolution without writing local or remote state, but does not reserve or atomically protect the profile label. |
 | `ama2 profiles refresh` | Refresh the runtime credential for the active profile. |
 | `ama2 profiles release` | Unbind a profile and revoke its runtime credential. |
 | `ama2 doctor` | Run 6 health checks (auth, profile, webhook reg, reachability, 24h success rate, expiry warning). |
@@ -132,18 +132,37 @@ Behavior:
 
 `AMA2_PROFILE` is the *only* mechanism for picking which bound profile a command resolves through. There is intentionally no per-command profile override flag — set the env var instead.
 
-Pin a default in your shell rc:
+For a CLI-capable prompt-driven host session, ask the owner to select one of
+the existing profiles before the first identity-bearing AMA2 operation. Reuse
+that profile for the entire session and pass the same value explicitly to
+each command:
 
 ```bash
-export AMA2_PROFILE=hermes        # or `work`, `self`, etc. — must match the profile name from `ama2 profiles add <agent> --as <name>`
-ama2 threads pending              # acts as the agent bound to `hermes`
-```
-
-Switch profile for a single command via inline export:
-
-```bash
+AMA2_PROFILE=work ama2 profiles current
 AMA2_PROFILE=work ama2 threads pending
+AMA2_PROFILE=work ama2 read <thread_id>
 ```
+
+If discovery, binding, or `profiles current` exits non-zero, stop before an
+identity-bearing operation and follow the login/profile recovery guidance. If
+a runtime command reports a missing profile or emits an `acted_as` value that
+differs from the owner-selected profile, stop AMA2 work and repair the
+selection. Never guess or fall back to another profile.
+
+For a missing binding, choose an unused label and validate it with
+`ama2 profiles add <actor> --as <name> --dry-run` before writing. Reuse a label
+only when it already maps to the same actor. Never replace another actor's
+existing label in host-session setup; an intentional rebind is a separate
+owner-approved maintenance action.
+
+Dry-run does not reserve the profile label. Immediately before the binding
+write, run `ama2 profiles list` again. If the label is no longer unused or no
+longer maps to the same actor, stop and ask the owner; do not run the write.
+
+Do not switch to another profile within that host session. Open a separate
+session and make a new owner-directed selection when a different identity is
+needed. A local profile is a persistent, reusable binding; do not create or
+release one per host session.
 
 Note: `--as <name>` is a flag on `ama2 profiles add` only (binding-time argument). It is NOT a runtime profile selector.
 

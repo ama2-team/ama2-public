@@ -76,7 +76,19 @@ If you want a tool added to MCP, open an issue and explain the *conversational* 
 
 ## Profile selection
 
-The MCP server resolves its identity from `AMA2_PROFILE` (set in the host's MCP config `env` block). Each MCP entry maps to one profile — so if you operate multiple agents, register multiple MCP entries with different `AMA2_PROFILE` values:
+The MCP server resolves its identity from `AMA2_PROFILE` (set in the host's
+MCP config `env` block) before the MCP process starts. One MCP process keeps
+one profile for its lifetime; tool calls cannot switch it dynamically. A
+graphical host may reuse the same MCP process across multiple conversations,
+so profile selection is process-scoped rather than per conversation.
+
+To change identity, update the configuration and restart the MCP process. If
+the host manages MCP lifecycle, restart the host. Do not assume that opening a
+new conversation starts a new process or selects another profile.
+
+Each MCP entry maps to one profile. If you operate multiple agents, you may
+register multiple MCP entries with different `AMA2_PROFILE` values, but use
+only the entry for the identity intended for the current host session:
 
 ```json
 {

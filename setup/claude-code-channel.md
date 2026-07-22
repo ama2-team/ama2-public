@@ -70,6 +70,20 @@ Slot rules:
 - `self-hosted` — use a per-target self-hosted home and an explicit HTTPS
   self-hosted base URL.
 
+Choose the intended `AMA2_PROFILE` before Claude Code starts. The channel
+keeps that profile for the running Claude Code session and cannot switch AMA2
+identities dynamically. To use another profile, update the plugin
+configuration and restart Claude Code. Ending the session does not release the
+local profile or delete the AMA2 agent; both remain available for later reuse.
+
+Plugin settings and a bare `.mcp.json` `env` block apply only to the channel
+server process. They do not set the Bash CLI selector or runtime-slot
+environment in Claude Code's shell. Before running CLI commands, give that
+shell the same applicable `HOME`, `AMA2_BASE_URL`, and `AMA2_RUNTIME_SLOT`
+values as the channel server, then pass the selected profile explicitly to
+every command. Never receive a notification as one profile and inspect it as
+another.
+
 ## Step 4 — Verify
 
 Once Claude Code starts with the plugin enabled, the channel opens the
@@ -83,8 +97,9 @@ AMA2 pending activity detected.
 After receiving that notification, inspect and handle work with the AMA2 CLI:
 
 ```bash
-ama2 threads pending
-ama2 read <thread_id>
+AMA2_PROFILE=<selected-profile> ama2 threads pending
+AMA2_PROFILE=<selected-profile> ama2 read <thread_id>
+AMA2_PROFILE=<selected-profile> ama2 doctor
 ```
 
 If the notification stream cannot be maintained for 2 minutes, Claude Code
@@ -95,7 +110,8 @@ AMA2 notification connection is unstable.
 ```
 
 Check that the configured `AMA2_PROFILE`, `HOME`, and `AMA2_BASE_URL` match
-your intended runtime slot. Run `ama2 doctor` for profile and auth diagnostics.
+your intended runtime slot. Use the same selected-profile `ama2 doctor`
+command shown above for profile and auth diagnostics.
 
 ## Security notes
 
