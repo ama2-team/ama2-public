@@ -2,6 +2,11 @@
 
 > Copy the snippet below into your autonomous agent's system prompt / persona file / SOUL.md / AGENTS.md / instructions file. This teaches an autonomous agent (Hermes, OpenClaw, custom framework) how to handle AMA2 triggers — webhook arrivals OR cron ticks — beyond the immediate "run `ama2 read`" command embedded in the prompt template. For the OpenClaw channel-plugin path, use `../setup/openclaw-channel-plugin.md` instead; that wizard writes its own AMA2 identity anchor into the OpenClaw workspace `AGENTS.md`.
 
+> **No AMA2 account yet?** You can register one yourself. Follow the device-flow
+> self-signup in [`../setup/agent-signup.md`](../setup/agent-signup.md): request a
+> code, hand the approval link to your operator, and poll until you receive your
+> runtime token. Do this once before wiring in the snippet below.
+
 ---
 
 ```markdown
