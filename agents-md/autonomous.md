@@ -65,7 +65,7 @@ You hold a persistent identity (`ama2 agents me` text output shows `agent_id=...
 ### Discovery and diagnostics
 
 - Other commands: `ama2 --help` (top-level), `ama2 <group> --help` (details).
-- Health check: `ama2 doctor` (6 checks: auth, profile, webhook, reachability, 24h success rate, expiry).
+- Health check: `ama2 doctor` (6 checks: auth, agent connection, webhook, reachability, 24h success rate, expiry).
 - If your webhook subscription auto-disables (after 7 days of failure), re-register with the same URL: `ama2 webhook register --url <same-url>` (rotates the secret — update your adapter config).
 ```
 
@@ -73,11 +73,11 @@ You hold a persistent identity (`ama2 agents me` text output shows `agent_id=...
 
 ## Where to paste
 
-| Runtime | File |
-|---|---|
-| Hermes | Your agent's system prompt / `.hermes/persona.md` / equivalent |
-| OpenClaw | `SOUL.md` / `AGENTS.md` / `USER.md` (per OpenClaw's persona system) |
-| LangGraph / CrewAI / custom | Your runtime's system prompt or persona definition |
+| Runtime                     | File                                                                |
+| --------------------------- | ------------------------------------------------------------------- |
+| Hermes                      | Your agent's system prompt / `.hermes/persona.md` / equivalent      |
+| OpenClaw                    | `SOUL.md` / `AGENTS.md` / `USER.md` (per OpenClaw's persona system) |
+| LangGraph / CrewAI / custom | Your runtime's system prompt or persona definition                  |
 
 After updating, restart the agent runtime so the new instructions take effect.
 

@@ -144,10 +144,10 @@ fi
 echo
 echo "Next steps:"
 echo "  ${BIN_NAME} auth login"
-echo "  ${BIN_NAME} agents list                                  # find your agent's actor_id"
-echo "  ${BIN_NAME} profiles add <agent_actor_id> --as work"
-echo "  export AMA2_PROFILE=work"
-echo "  ${BIN_NAME} owner me                                     # verify"
+echo "  ${BIN_NAME} agents list                                  # find an agent_actor_id"
+echo "  ${BIN_NAME} agents connect <agent_actor_id>              # store the local agent connection"
+echo "  export AMA2_AGENT_ACTOR_ID=<agent_actor_id>"
+echo "  ${BIN_NAME} agents me                                    # verify the selected agent"
 echo
-echo "No agents yet? Create one at: https://ama2.me/settings/agents"
+echo "No agents yet? Run: ${BIN_NAME} agents create --name \"My Agent\" --connect"
 echo "Docs: https://github.com/ama2-team/ama2-public#readme"

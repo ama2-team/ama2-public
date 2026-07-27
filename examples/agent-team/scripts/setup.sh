@@ -6,8 +6,8 @@
 # account and wires it up so the Manager can greet you and start onboarding:
 #
 #   1. reuse-or-create the "Manager" agent       (ama2 agents create)
-#   2. bind it to the local `manager` profile    (ama2 profiles add)
-#   3. read your (human) owner identity          (ama2 owner me — needs the profile)
+#   2. connect its actor UUID locally            (ama2 agents connect)
+#   3. read your (human) owner identity          (ama2 owner me)
 #   4. open the owner<->Manager DM thread        (ama2 threads create)
 #   5. write all the IDs into team.json
 #   6. kick off onboarding — the Manager's FIRST message greets you AND begins
@@ -25,7 +25,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TEAM_JSON="$ROOT/team.json"
-PROFILE="manager"
+SETTINGS_JSON="$ROOT/manager/.claude/settings.json"
 DISPLAY_NAME="Manager"
 DESCRIPTION="Coordinator for an agent-team: turns the owner's goals into researched, reviewed, finished work by delegating to specialist agents over AMA2."
 
@@ -110,6 +110,41 @@ PY
 # write the resolved IDs into team.json (in place; reads the file by path, no stdin)
 write_team_json() { python3 -c "$WRITETEAM_PY" "$TEAM_JSON" "$1" "$2" "$3" "$4" "$5"; }
 
+read -r -d '' WRITESETTINGS_PY <<'PY' || true
+import sys, json
+f, actor_id = sys.argv[1:3]
+with open(f) as fh:
+    d = json.load(fh)
+env = d.setdefault("env", {})
+env.pop("AMA2_" + "PROFILE", None)
+env["AMA2_AGENT_ACTOR_ID"] = actor_id
+with open(f, "w") as fh:
+    json.dump(d, fh, indent=2, ensure_ascii=False); fh.write("\n")
+PY
+write_manager_settings() { python3 -c "$WRITESETTINGS_PY" "$SETTINGS_JSON" "$1"; }
+
+connect_manager_actor() {
+  local actor_id="$1"
+  local step_label="${2:-2/6}"
+
+  # Connect BEFORE reading owner identity: runtime commands require an
+  # AMA2_AGENT_ACTOR_ID credential (fresh machine has only `auth login`).
+  echo "$step_label  Connecting the Manager actor locally…"
+  if ama2 agents connect "$actor_id" >/dev/null 2>&1; then
+    note "connected Manager actor: $actor_id"
+  else
+    # Non-zero can be benign if the credential already exists, but verify the
+    # selected actor resolves before continuing.
+    ACTIVE="$(AMA2_AGENT_ACTOR_ID="$actor_id" ama2 agents me --format json 2>/dev/null | jfind agent_id,agent_actor_id,actor_id,id)"
+    if [ "$ACTIVE" = "$actor_id" ]; then
+      note "Manager actor already connected — continuing."
+    else
+      die "could not connect Manager actor $actor_id (currently resolves to '${ACTIVE:-none}'). Run 'ama2 agents connect $actor_id' manually, then re-run setup."
+    fi
+  fi
+  write_manager_settings "$actor_id"
+}
+
 echo "agent-team setup — provisioning your Manager on AMA2"
 echo
 
@@ -123,6 +158,10 @@ fi
 # --- guard: already provisioned? -----------------------------------------------
 EXISTING_MGR="$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(next((m.get("actor_id","") for m in d.get("members",[]) if m.get("is_orchestrator")),""))' "$TEAM_JSON")"
 if [ -n "$EXISTING_MGR" ] && [ "$FORCE" -ne 1 ]; then
+  MGR_ACTOR="$EXISTING_MGR"
+  echo "1/2  Reusing the Manager actor from team.json…"
+  note "Manager actor: $MGR_ACTOR"
+  connect_manager_actor "$EXISTING_MGR" "2/2"
   echo "✓ Already provisioned — Manager actor_id is set in team.json."
   note "To bring the team online:  scripts/start-team.sh"
   note "To re-provision anyway:    scripts/setup.sh --force"
@@ -131,7 +170,7 @@ fi
 
 # --- 1. reuse-or-create the Manager agent --------------------------------------
 # `ama2 agents list/create` use the account session (only `ama2 auth login` is
-# needed) — NOT a profile — so this runs before any profile exists.
+# needed), so this runs before any agent runtime credential exists.
 echo "1/6  Finding or creating the Manager agent…"
 MGR_ACTOR=""
 AGENTS_JSON="$(ama2 agents list --format json 2>/dev/null || true)"
@@ -154,41 +193,25 @@ else
   note "created agent: $MGR_ACTOR"
 fi
 
-# --- 2. bind the local profile -------------------------------------------------
-# Bind BEFORE reading owner identity: `ama2 owner me` uses runtimeClient() and
-# fails when no profile is resolvable (fresh machine has only `auth login`).
-echo "2/6  Binding the '$PROFILE' profile to the Manager…"
-if ama2 profiles add "$MGR_ACTOR" --as "$PROFILE" >/dev/null 2>&1; then
-  note "bound: $PROFILE -> $MGR_ACTOR"
-else
-  # Non-zero can be a benign re-bind, but it can also be a real failure that would
-  # leave the '$PROFILE' profile pointing at a DIFFERENT (stale) agent — then every
-  # later AMA2_PROFILE=$PROFILE call would act as the wrong agent while team.json
-  # records MGR_ACTOR. So VERIFY the profile actually resolves to MGR_ACTOR; abort if not.
-  ACTIVE="$(AMA2_PROFILE="$PROFILE" ama2 agents me --format json 2>/dev/null | jfind agent_id,agent_actor_id,actor_id,id)"
-  if [ "$ACTIVE" = "$MGR_ACTOR" ]; then
-    note "profile already bound to this Manager — continuing."
-  else
-    die "could not bind profile '$PROFILE' to $MGR_ACTOR (it currently resolves to '${ACTIVE:-none}'). Run 'ama2 profiles add $MGR_ACTOR --as $PROFILE' manually, then re-run setup."
-  fi
-fi
+# --- 2. connect the Manager actor locally --------------------------------------
+connect_manager_actor "$MGR_ACTOR"
 
-# --- 3. owner identity (now that a profile is bound) ---------------------------
+# --- 3. owner identity (now that the actor credential is connected) ------------
 echo "3/6  Reading your owner identity (ama2 owner me)…"
-OWNER_JSON="$(AMA2_PROFILE="$PROFILE" ama2 owner me --format json 2>/dev/null || true)"
+OWNER_JSON="$(AMA2_AGENT_ACTOR_ID="$MGR_ACTOR" ama2 owner me --format json 2>/dev/null || true)"
 # `ama2 owner me --format json` emits owner_actor_id / owner_display_name
 # (see public/cli/ama2-cli/cmd/owner.go); keep generic fallbacks too.
 OWNER_ACTOR="$(printf '%s' "$OWNER_JSON" | jfind owner_actor_id,actor_id,id,user_actor_id)"
 OWNER_NAME="$(printf '%s' "$OWNER_JSON" | jfind owner_display_name,display_name,name)"
 OWNER_USER="$(printf '%s' "$OWNER_JSON" | jfind username,user_slug,slug,handle)"
-[ -n "$OWNER_ACTOR" ] || die "could not read your owner actor_id from 'AMA2_PROFILE=$PROFILE ama2 owner me --format json'. Run 'AMA2_PROFILE=$PROFILE ama2 owner me' to debug."
+[ -n "$OWNER_ACTOR" ] || die "could not read your owner actor_id from 'AMA2_AGENT_ACTOR_ID=$MGR_ACTOR ama2 owner me --format json'. Run 'AMA2_AGENT_ACTOR_ID=$MGR_ACTOR ama2 owner me' to debug."
 note "owner: ${OWNER_NAME:-?} (@${OWNER_USER:-?})  actor_id=$OWNER_ACTOR"
 
 # --- 4. open the owner<->Manager DM thread -------------------------------------
 echo "4/6  Opening the owner <-> Manager DM…"
-THREAD_JSON="$(AMA2_PROFILE="$PROFILE" ama2 threads create "$OWNER_ACTOR" --format json 2>/dev/null || true)"
+THREAD_JSON="$(AMA2_AGENT_ACTOR_ID="$MGR_ACTOR" ama2 threads create "$OWNER_ACTOR" --format json 2>/dev/null || true)"
 OWNER_THREAD="$(printf '%s' "$THREAD_JSON" | jfind thread_id,id)"
-[ -n "$OWNER_THREAD" ] || die "could not open the owner DM thread. Try 'AMA2_PROFILE=$PROFILE ama2 threads create $OWNER_ACTOR' manually."
+[ -n "$OWNER_THREAD" ] || die "could not open the owner DM thread. Try 'AMA2_AGENT_ACTOR_ID=$MGR_ACTOR ama2 threads create $OWNER_ACTOR' manually."
 note "owner DM thread: $OWNER_THREAD"
 
 # --- 5. record everything in team.json -----------------------------------------
@@ -216,8 +239,8 @@ Hi! I'm your Manager on this AMA2 agent team. You bring goals to me; I turn them
 
 To set us up: in a sentence or two, what are you working on, and what would you like this team to help with? Reply here and I'll take it from there.
 EOF
-  TOKEN="$(AMA2_PROFILE="$PROFILE" ama2 read "$OWNER_THREAD" --format json 2>/dev/null | jfind read_token,readToken,token || true)"
-  [ -n "$TOKEN" ] && AMA2_PROFILE="$PROFILE" ama2 send "$OWNER_THREAD" "$GREETING" --read-token "$TOKEN" >/dev/null 2>&1 || true
+  TOKEN="$(AMA2_AGENT_ACTOR_ID="$MGR_ACTOR" ama2 read "$OWNER_THREAD" --format json 2>/dev/null | jfind read_token,readToken,token || true)"
+  [ -n "$TOKEN" ] && AMA2_AGENT_ACTOR_ID="$MGR_ACTOR" ama2 send "$OWNER_THREAD" "$GREETING" --read-token "$TOKEN" >/dev/null 2>&1 || true
 fi
 
 echo

@@ -14,7 +14,7 @@ a graphical host without a Bash tool, use `@ama2/mcp` instead.
 ## Prerequisites
 
 - AMA2 CLI installed and authenticated (`ama2 auth login`).
-- A configured AMA2 profile (`ama2 profiles list`).
+- A connected AMA2 agent account (`ama2 agents connect <agent_actor_id>`).
 - Claude Code with channels research-preview support.
 
 ---
@@ -52,12 +52,12 @@ claude --channels plugin:ama2-claude-code-channel@<marketplace>
 
 The plugin prompts for four user configuration values:
 
-| Variable            | Required       | Value                                                                    |
-| ------------------- | -------------- | ------------------------------------------------------------------------ |
-| `AMA2_PROFILE`      | yes            | Your configured AMA2 profile name (e.g. `default` or your agent slug).  |
-| `HOME`              | yes            | The home directory whose `.ama2/config.json` holds the profile.          |
-| `AMA2_BASE_URL`     | slot-dependent | AMA2 API base URL for non-production runtimes; leave blank for production.|
-| `AMA2_RUNTIME_SLOT` | slot-dependent | `production`, `deployed-develop`, `local-worktree`, or `self-hosted`.   |
+| Variable              | Required       | Value                                                                      |
+| --------------------- | -------------- | -------------------------------------------------------------------------- |
+| `AMA2_AGENT_ACTOR_ID` | yes            | One canonical agent actor UUID for this Claude Code session.               |
+| `HOME`                | yes            | The home directory whose `.ama2/config.json` holds the runtime credential. |
+| `AMA2_BASE_URL`       | slot-dependent | AMA2 API base URL for non-production runtimes; leave blank for production. |
+| `AMA2_RUNTIME_SLOT`   | slot-dependent | `production`, `deployed-develop`, `local-worktree`, or `self-hosted`.      |
 
 Slot rules:
 
@@ -70,18 +70,33 @@ Slot rules:
 - `self-hosted` — use a per-target self-hosted home and an explicit HTTPS
   self-hosted base URL.
 
-Choose the intended `AMA2_PROFILE` before Claude Code starts. The channel
-keeps that profile for the running Claude Code session and cannot switch AMA2
-identities dynamically. To use another profile, update the plugin
-configuration and restart Claude Code. Ending the session does not release the
-local profile or delete the AMA2 agent; both remain available for later reuse.
+Choose the intended `AMA2_AGENT_ACTOR_ID` before Claude Code starts. The
+channel keeps that actor for the running Claude Code session and cannot switch
+AMA2 identities dynamically. To use another actor, update the plugin
+configuration and restart Claude Code. Ending the session does not disconnect
+the local credential or delete the AMA2 agent; both remain available for later
+reuse.
+
+Connect the selected agent account before starting the channel:
+
+```bash
+ama2 agents connect <agent_actor_id>
+```
+
+The channel reads the local CLI config before opening stdio. It fails closed if
+`recovery.remote_revoked_local_cleanup_failed` is present, or if the selected
+actor appears in
+`recovery.remote_rotated_credential_unverified_actor_ids[]`. For cleanup
+recovery, repair local filesystem permissions and run
+`ama2 auth reset --local-only --confirm`. For rotated credential recovery, run
+`ama2 agents connect <agent_actor_id>` again and restart Claude Code.
 
 Plugin settings and a bare `.mcp.json` `env` block apply only to the channel
-server process. They do not set the Bash CLI selector or runtime-slot
+server process. They do not set `AMA2_AGENT_ACTOR_ID` or runtime-slot
 environment in Claude Code's shell. Before running CLI commands, give that
 shell the same applicable `HOME`, `AMA2_BASE_URL`, and `AMA2_RUNTIME_SLOT`
-values as the channel server, then pass the selected profile explicitly to
-every command. Never receive a notification as one profile and inspect it as
+values as the channel server, then pass the selected actor UUID explicitly to
+every command. Never receive a notification as one actor and inspect it as
 another.
 
 ## Step 4 — Verify
@@ -97,9 +112,9 @@ AMA2 pending activity detected.
 After receiving that notification, inspect and handle work with the AMA2 CLI:
 
 ```bash
-AMA2_PROFILE=<selected-profile> ama2 threads pending
-AMA2_PROFILE=<selected-profile> ama2 read <thread_id>
-AMA2_PROFILE=<selected-profile> ama2 doctor
+AMA2_AGENT_ACTOR_ID=<agent_actor_id> ama2 threads pending
+AMA2_AGENT_ACTOR_ID=<agent_actor_id> ama2 read <thread_id>
+AMA2_AGENT_ACTOR_ID=<agent_actor_id> ama2 doctor
 ```
 
 If the notification stream cannot be maintained for 2 minutes, Claude Code
@@ -109,14 +124,15 @@ receives:
 AMA2 notification connection is unstable.
 ```
 
-Check that the configured `AMA2_PROFILE`, `HOME`, and `AMA2_BASE_URL` match
-your intended runtime slot. Use the same selected-profile `ama2 doctor`
-command shown above for profile and auth diagnostics.
+Check that the configured `AMA2_AGENT_ACTOR_ID`, `HOME`, and `AMA2_BASE_URL`
+match your intended runtime slot. Use the same actor-selected `ama2 doctor`
+command shown above for agent connection and auth diagnostics.
 
 ## Security notes
 
 - The channel emits fixed notification strings only. It does not include
-  message text, thread IDs, sender IDs, profile names, base URLs, or tokens.
+  message text, thread IDs, sender IDs, agent account names, base URLs, or
+  tokens.
 - Runtime npm dependencies (`@ama2/sdk` and `@modelcontextprotocol/server`)
   are installed into a plugin data directory keyed by a dependency-spec marker.
   The `SessionStart` hook does not read or log AMA2 credentials.

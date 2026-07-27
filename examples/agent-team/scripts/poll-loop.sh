@@ -17,32 +17,32 @@
 #   - external-workspace member (e.g. a coding agent): session runs INSIDE a
 #     separate project repo (workspace_dir) so that repo's own config loads.
 #
-# Usage: poll-loop.sh <identity_dir> <ama2_profile> [interval] [workspace_dir] [engine]
+# Usage: poll-loop.sh <identity_dir> <agent_actor_id> [interval] [workspace_dir] [engine]
 set -u
 
 AGENT_DIR="${1:?identity_dir required}"
-PROFILE="${2:?ama2_profile required}"
+AGENT_ACTOR_ID="${2:?agent_actor_id required}"
 INTERVAL="${3:-30}"
 WORKSPACE_DIR="${4:-}"
 ENGINE="${5:-claude}"
 
 # The shell that runs `ama2` here is NOT an agent session, so it does not inherit
-# AMA2_PROFILE from a dir's config. Set it explicitly.
-export AMA2_PROFILE="$PROFILE"
+# AMA2_AGENT_ACTOR_ID from a dir's config. Set it explicitly.
+export AMA2_AGENT_ACTOR_ID="$AGENT_ACTOR_ID"
 
 if [ -n "$WORKSPACE_DIR" ]; then
   RUN_DIR="$WORKSPACE_DIR"
-  HANDLER_PROMPT="You are agent-team's '$PROFILE' agent, working INSIDE this project \
+  HANDLER_PROMPT="You are agent-team member '$AGENT_ACTOR_ID', working INSIDE this project \
 repo — its own guide (CLAUDE.md/AGENTS.md), tooling, and gates apply here; follow \
 them. Your TEAM identity, mandate, and reporting thread are in $AGENT_DIR (its \
 CLAUDE.md/AGENTS.md) and the team charter $AGENT_DIR/../TEAM.md — read them first. \
-Then check your team inbox: run 'AMA2_PROFILE=$PROFILE ama2 threads pending'; for \
-each pending thread run 'AMA2_PROFILE=$PROFILE ama2 read <id>', do the work HERE, \
-and reply to the Manager with 'AMA2_PROFILE=$PROFILE ama2 send <id> \"<reply>\" \
+Then check your team inbox: run 'AMA2_AGENT_ACTOR_ID=$AGENT_ACTOR_ID ama2 threads pending'; for \
+each pending thread run 'AMA2_AGENT_ACTOR_ID=$AGENT_ACTOR_ID ama2 read <id>', do the work HERE, \
+and reply to the Manager with 'AMA2_AGENT_ACTOR_ID=$AGENT_ACTOR_ID ama2 send <id> \"<reply>\" \
 --read-token <token>'. Then run your 'scan-work' skill: scan your own and the \
-team's cards ('AMA2_PROFILE=$PROFILE ama2 cards list') and act on the next thing \
+team's cards ('AMA2_AGENT_ACTOR_ID=$AGENT_ACTOR_ID ama2 cards list') and act on the next thing \
 (continue/submit your card, fix a needs_fix, vote on a card you review). ALWAYS \
-prefix ama2 with AMA2_PROFILE=$PROFILE. If nothing is actionable, stop."
+prefix ama2 with AMA2_AGENT_ACTOR_ID=$AGENT_ACTOR_ID. If nothing is actionable, stop."
 else
   RUN_DIR="$AGENT_DIR"
   HANDLER_PROMPT="You were woken to check your team work. (1) Run 'ama2 threads pending'; \
@@ -83,10 +83,10 @@ work_pending() {
   return 1
 }
 
-echo "[poll-loop] $PROFILE [$ENGINE] in $RUN_DIR (identity $AGENT_DIR) every ${INTERVAL}s (pid $$)"
+echo "[poll-loop] $AGENT_ACTOR_ID [$ENGINE] in $RUN_DIR (identity $AGENT_DIR) every ${INTERVAL}s (pid $$)"
 while true; do
   if work_pending; then
-    echo "[poll-loop] $(date '+%Y-%m-%dT%H:%M:%S') $PROFILE: work found -> waking $ENGINE handler"
+    echo "[poll-loop] $(date '+%Y-%m-%dT%H:%M:%S') $AGENT_ACTOR_ID: work found -> waking $ENGINE handler"
     run_handler || echo "[poll-loop] handler exited non-zero (continuing)"
   fi
   sleep "$INTERVAL"

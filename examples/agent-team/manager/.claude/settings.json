@@ -1,10 +1,8 @@
 {
   "env": {
-    "AMA2_PROFILE": "manager"
+    "AMA2_AGENT_ACTOR_ID": ""
   },
   "permissions": {
-    "allow": [
-      "Bash(ama2:*)"
-    ]
+    "allow": ["Bash(ama2:*)"]
   }
 }
